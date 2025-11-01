@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ru">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1" />
+		<title>ИМТ — Калькулятор и сравнение</title>
+		<meta
+			name="description"
+			content="Одностраничный калькулятор индекса массы тела (ИМТ) с возможностью сравнения двух людей." />
+		<style>
+			:root {
+				/* Muted rainbow palette */
+				--red: hsl(0 70% 80%);
+				--orange: hsl(30 70% 78%);
+				--yellow: hsl(48 70% 80%);
+				--green: hsl(140 35% 78%);
+				--blue: hsl(210 45% 80%);
+				--indigo: hsl(230 35% 78%);
+				--violet: hsl(275 35% 82%);
+
+				/* Accents, per project colors */
+				--accent-green: rgb(0, 77, 0);
+				--accent-orange: #ff8c00;
+
+				--bg: hsl(0 0% 99%);
+				--text: hsl(210 15% 14%);
+				--text-weak: hsl(210 10% 30%);
+				--card: #ffffff;
+				--border: hsl(210 18% 90%);
+				--focus: var(--accent-orange);
+				--error: hsl(0 65% 50%);
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				height: 100%;
+			}
+			body {
+				margin: 0;
+				font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial,
+					'Apple Color Emoji', 'Segoe UI Emoji';
+				color: var(--text);
+				background: linear-gradient(
+						135deg,
+						color-mix(in oklab, var(--red) 30%, white 70%) 0%,
+						color-mix(in oklab, var(--orange) 35%, white 65%) 18%,
+						color-mix(in oklab, var(--yellow) 35%, white 65%) 36%,
+						color-mix(in oklab, var(--green) 35%, white 65%) 54%,
+						color-mix(in oklab, var(--blue) 35%, white 65%) 72%,
+						color-mix(in oklab, var(--indigo) 35%, white 65%) 90%,
+						color-mix(in oklab, var(--violet) 35%, white 65%) 100%
+					)
+					fixed;
+				background-color: var(--bg);
+			}
+
+			.wrap {
+				max-width: 1100px;
+				margin: 0 auto;
+				padding: 20px 16px 48px;
+			}
+
+			header {
+				border-radius: 16px;
+				background: linear-gradient(
+					90deg,
+					color-mix(in oklab, var(--red), white 65%),
+					color-mix(in oklab, var(--orange), white 65%),
+					color-mix(in oklab, var(--yellow), white 65%),
+					color-mix(in oklab, var(--green), white 65%),
+					color-mix(in oklab, var(--blue), white 65%),
+					color-mix(in oklab, var(--indigo), white 65%),
+					color-mix(in oklab, var(--violet), white 65%)
+				);
+				padding: 20px;
+				margin-bottom: 20px;
+				border: 1px solid var(--border);
+			}
+			header h1 {
+				margin: 0 0 8px 0;
+				font-size: clamp(1.35rem, 2.6vw, 2rem);
+				line-height: 1.2;
+				color: var(--accent-green);
+			}
+			header p {
+				margin: 0;
+				color: var(--text-weak);
+			}
+
+			.card-grid {
+				display: grid;
+				grid-template-columns: 1fr;
+				gap: 16px;
+			}
+			@media (min-width: 820px) {
+				.card-grid {
+					grid-template-columns: 1fr 1fr;
+				}
+			}
+
+			.card {
+				background: var(--card);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 16px;
+				box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.03), 0 6px 18px rgba(0, 0, 0, 0.04);
+			}
+			.card h2 {
+				margin: 0 0 12px 0;
+				font-size: 1.1rem;
+				color: var(--text);
+			}
+
+			.field {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 12px;
+				margin-bottom: 12px;
+			}
+			.field label {
+				grid-column: 1 / -1;
+				font-weight: 600;
+				font-size: 0.95rem;
+			}
+			.input-row {
+				display: grid;
+				grid-template-columns: 1fr auto;
+				gap: 8px;
+				align-items: center;
+			}
+			input[type='number'] {
+				width: 100%;
+				appearance: textfield;
+				-moz-appearance: textfield;
+				padding: 10px 12px;
+				border-radius: 10px;
+				border: 1px solid var(--border);
+				background: white;
+				color: var(--text);
+				font-size: 1rem;
+			}
+			input[type='number']:focus {
+				outline: 3px solid color-mix(in oklab, var(--focus), white 70%);
+				border-color: var(--focus);
+			}
+			.unit {
+				font-size: 0.9rem;
+				color: var(--text-weak);
+				padding: 0 8px;
+			}
+			.hint {
+				grid-column: 1 / -1;
+				font-size: 0.85rem;
+				color: var(--text-weak);
+				margin-top: -2px;
+			}
+			.error {
+				grid-column: 1 / -1;
+				font-size: 0.9rem;
+				color: var(--error);
+				margin-top: 6px;
+			}
+
+			.actions {
+				display: flex;
+				gap: 10px;
+				flex-wrap: wrap;
+				align-items: center;
+				margin: 8px 0 4px 0;
+			}
+			button {
+				border: none;
+				padding: 10px 14px;
+				border-radius: 10px;
+				font-size: 1rem;
+				cursor: pointer;
+				background: linear-gradient(
+					180deg,
+					color-mix(in oklab, var(--accent-orange), white 50%),
+					var(--accent-orange)
+				);
+				color: white;
+				box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+			}
+			button:hover {
+				filter: brightness(0.98);
+			}
+			button:focus {
+				outline: 3px solid color-mix(in oklab, var(--accent-orange), white 50%);
+			}
+
+			.ghost {
+				background: linear-gradient(
+					180deg,
+					color-mix(in oklab, var(--accent-green), white 65%),
+					var(--accent-green)
+				);
+			}
+
+			.results {
+				margin-top: 18px;
+				display: grid;
+				grid-template-columns: 1fr;
+				gap: 16px;
+			}
+			@media (min-width: 820px) {
+				.results {
+					grid-template-columns: 1fr 1fr;
+				}
+			}
+
+			.result-card {
+				background: var(--card);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 16px;
+			}
+			.result-header {
+				display: flex;
+				align-items: baseline;
+				justify-content: space-between;
+				gap: 8px;
+			}
+			.bmi-value {
+				font-size: 1.6rem;
+				font-weight: 700;
+			}
+			.badge {
+				padding: 4px 10px;
+				border-radius: 999px;
+				font-size: 0.9rem;
+				border: 1px solid var(--border);
+				background: white;
+			}
+			.bar {
+				margin-top: 12px;
+				height: 12px;
+				background: linear-gradient(90deg, var(--blue), var(--green), var(--yellow), var(--orange), var(--red));
+				border-radius: 999px;
+				position: relative;
+				overflow: hidden;
+			}
+			.needle {
+				position: absolute;
+				top: -3px;
+				height: 18px;
+				width: 2px;
+				background: var(--accent-green);
+				box-shadow: 0 0 0 2px white;
+			}
+			.legend {
+				margin-top: 8px;
+				color: var(--text-weak);
+				font-size: 0.9rem;
+				display: flex;
+				justify-content: space-between;
+			}
+
+			.compare-card {
+				grid-column: 1 / -1;
+				background: var(--card);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 16px;
+			}
+			.compare-title {
+				margin: 0 0 8px 0;
+				font-size: 1.1rem;
+			}
+			.compare-summary {
+				margin: 4px 0 12px 0;
+				font-weight: 600;
+			}
+			.compare-bars {
+				display: grid;
+				grid-template-columns: 1fr;
+				gap: 10px;
+			}
+			@media (min-width: 600px) {
+				.compare-bars {
+					grid-template-columns: 1fr 1fr;
+				}
+			}
+			.mini-bar {
+				height: 10px;
+				border-radius: 999px;
+				background: linear-gradient(90deg, var(--blue), var(--green), var(--yellow), var(--orange), var(--red));
+				position: relative;
+				overflow: hidden;
+			}
+			.mini-needle {
+				position: absolute;
+				top: -2px;
+				height: 14px;
+				width: 2px;
+				background: var(--accent-green);
+				box-shadow: 0 0 0 2px white;
+			}
+
+			footer {
+				margin-top: 28px;
+				color: var(--text-weak);
+				font-size: 0.9rem;
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				* {
+					transition: none !important;
+					animation: none !important;
+				}
+			}
+			@media (prefers-contrast: more) {
+				:root {
+					--border: hsl(210 5% 60%);
+				}
+				.needle,
+				.mini-needle {
+					box-shadow: none;
+				}
+				button {
+					box-shadow: none;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="wrap">
+			<header role="banner">
+				<h1>Калькулятор индекса массы тела (ИМТ)</h1>
+				<p>Введите рост и вес для двух людей, чтобы рассчитать и сравнить их ИМТ.</p>
+			</header>
+
+			<main
+				id="main"
+				role="main">
+				<form
+					id="bmi-form"
+					novalidate
+					aria-describedby="form-hint">
+					<p
+						id="form-hint"
+						class="hint">
+						Единицы измерения: рост — в сантиметрах, вес — в килограммах.
+					</p>
+					<div
+						class="card-grid"
+						role="group"
+						aria-label="Данные людей для сравнения">
+						<section
+							class="card"
+							aria-labelledby="p1-title">
+							<h2 id="p1-title">Человек A</h2>
+							<div class="field">
+								<label for="p1-height">Рост (см)</label>
+								<div class="input-row">
+									<input
+										id="p1-height"
+										name="p1-height"
+										type="number"
+										inputmode="decimal"
+										min="30"
+										max="300"
+										step="0.1"
+										autocomplete="off"
+										aria-describedby="p1-height-hint p1-height-err"
+										required />
+									<span
+										class="unit"
+										aria-hidden="true"
+										>см</span
+									>
+								</div>
+								<div
+									id="p1-height-hint"
+									class="hint">
+									Например, 170
+								</div>
+								<div
+									id="p1-height-err"
+									class="error"
+									role="alert"
+									aria-live="polite"></div>
+							</div>
+							<div class="field">
+								<label for="p1-weight">Вес (кг)</label>
+								<div class="input-row">
+									<input
+										id="p1-weight"
+										name="p1-weight"
+										type="number"
+										inputmode="decimal"
+										min="2"
+										max="500"
+										step="0.1"
+										autocomplete="off"
+										aria-describedby="p1-weight-hint p1-weight-err"
+										required />
+									<span
+										class="unit"
+										aria-hidden="true"
+										>кг</span
+									>
+								</div>
+								<div
+									id="p1-weight-hint"
+									class="hint">
+									Например, 65.5
+								</div>
+								<div
+									id="p1-weight-err"
+									class="error"
+									role="alert"
+									aria-live="polite"></div>
+							</div>
+						</section>
+
+						<section
+							class="card"
+							aria-labelledby="p2-title">
+							<h2 id="p2-title">Человек B</h2>
+							<div class="field">
+								<label for="p2-height">Рост (см)</label>
+								<div class="input-row">
+									<input
+										id="p2-height"
+										name="p2-height"
+										type="number"
+										inputmode="decimal"
+										min="30"
+										max="300"
+										step="0.1"
+										autocomplete="off"
+										aria-describedby="p2-height-hint p2-height-err"
+										required />
+									<span
+										class="unit"
+										aria-hidden="true"
+										>см</span
+									>
+								</div>
+								<div
+									id="p2-height-hint"
+									class="hint">
+									Например, 182.5
+								</div>
+								<div
+									id="p2-height-err"
+									class="error"
+									role="alert"
+									aria-live="polite"></div>
+							</div>
+							<div class="field">
+								<label for="p2-weight">Вес (кг)</label>
+								<div class="input-row">
+									<input
+										id="p2-weight"
+										name="p2-weight"
+										type="number"
+										inputmode="decimal"
+										min="2"
+										max="500"
+										step="0.1"
+										autocomplete="off"
+										aria-describedby="p2-weight-hint p2-weight-err"
+										required />
+									<span
+										class="unit"
+										aria-hidden="true"
+										>кг</span
+									>
+								</div>
+								<div
+									id="p2-weight-hint"
+									class="hint">
+									Например, 74
+								</div>
+								<div
+									id="p2-weight-err"
+									class="error"
+									role="alert"
+									aria-live="polite"></div>
+							</div>
+						</section>
+					</div>
+
+					<div
+						class="actions"
+						role="toolbar"
+						aria-label="Действия">
+						<button
+							type="submit"
+							aria-describedby="press-enter">
+							Рассчитать и сравнить
+						</button>
+						<button
+							type="button"
+							class="ghost"
+							id="clear-btn">
+							Очистить
+						</button>
+						<span
+							id="press-enter"
+							class="hint"
+							>Совет: можно нажать Enter для расчёта</span
+						>
+					</div>
+				</form>
+
+				<section
+					class="results"
+					aria-live="polite"
+					aria-atomic="false">
+					<article
+						class="result-card"
+						aria-labelledby="p1-res-title">
+						<div class="result-header">
+							<h3
+								id="p1-res-title"
+								style="margin: 0">
+								Результат — Человек A
+							</h3>
+							<span
+								id="p1-category"
+								class="badge"
+								aria-live="polite"></span>
+						</div>
+						<div>
+							<span
+								class="bmi-value"
+								id="p1-bmi"
+								>—</span
+							>
+							<span class="hint">ИМТ</span>
+						</div>
+						<div
+							class="bar"
+							aria-hidden="true">
+							<div
+								class="needle"
+								id="p1-needle"
+								style="left: 0%"></div>
+						</div>
+						<div class="legend">
+							<span>Низкий</span>
+							<span>Высокий</span>
+						</div>
+					</article>
+
+					<article
+						class="result-card"
+						aria-labelledby="p2-res-title">
+						<div class="result-header">
+							<h3
+								id="p2-res-title"
+								style="margin: 0">
+								Результат — Человек B
+							</h3>
+							<span
+								id="p2-category"
+								class="badge"
+								aria-live="polite"></span>
+						</div>
+						<div>
+							<span
+								class="bmi-value"
+								id="p2-bmi"
+								>—</span
+							>
+							<span class="hint">ИМТ</span>
+						</div>
+						<div
+							class="bar"
+							aria-hidden="true">
+							<div
+								class="needle"
+								id="p2-needle"
+								style="left: 0%"></div>
+						</div>
+						<div class="legend">
+							<span>Низкий</span>
+							<span>Высокий</span>
+						</div>
+					</article>
+
+					<article
+						class="compare-card"
+						aria-labelledby="cmp-title">
+						<h3
+							id="cmp-title"
+							class="compare-title">
+							Сравнение
+						</h3>
+						<p
+							id="cmp-summary"
+							class="compare-summary"
+							tabindex="-1">
+							Заполните данные и нажмите «Рассчитать и сравнить».
+						</p>
+						<div class="compare-bars">
+							<div>
+								<div
+									class="hint"
+									style="margin-bottom: 6px">
+									Человек A
+								</div>
+								<div
+									class="mini-bar"
+									aria-hidden="true">
+									<div
+										class="mini-needle"
+										id="cmp-needle-a"
+										style="left: 0%"></div>
+								</div>
+							</div>
+							<div>
+								<div
+									class="hint"
+									style="margin-bottom: 6px">
+									Человек B
+								</div>
+								<div
+									class="mini-bar"
+									aria-hidden="true">
+									<div
+										class="mini-needle"
+										id="cmp-needle-b"
+										style="left: 0%"></div>
+								</div>
+							</div>
+						</div>
+					</article>
+				</section>
+
+				<footer>
+					ИМТ = вес (кг) / (рост (м))². Категории: недостаточная масса, норма, избыточная масса, ожирение.
+				</footer>
+			</main>
+		</div>
+
+		<script>
+			;(function initBmiCalculator() {
+				const form = document.getElementById('bmi-form')
+				const clearBtn = document.getElementById('clear-btn')
+
+				const inputs = {
+					p1Height: document.getElementById('p1-height'),
+					p1Weight: document.getElementById('p1-weight'),
+					p2Height: document.getElementById('p2-height'),
+					p2Weight: document.getElementById('p2-weight'),
+				}
+
+				const errors = {
+					p1Height: document.getElementById('p1-height-err'),
+					p1Weight: document.getElementById('p1-weight-err'),
+					p2Height: document.getElementById('p2-height-err'),
+					p2Weight: document.getElementById('p2-weight-err'),
+				}
+
+				const results = {
+					p1Bmi: document.getElementById('p1-bmi'),
+					p1Category: document.getElementById('p1-category'),
+					p1Needle: document.getElementById('p1-needle'),
+					p2Bmi: document.getElementById('p2-bmi'),
+					p2Category: document.getElementById('p2-category'),
+					p2Needle: document.getElementById('p2-needle'),
+					cmpSummary: document.getElementById('cmp-summary'),
+					cmpNeedleA: document.getElementById('cmp-needle-a'),
+					cmpNeedleB: document.getElementById('cmp-needle-b'),
+				}
+
+				function toNumber(value) {
+					if (value === null || value === undefined) return NaN
+					const n = Number(String(value).replace(',', '.'))
+					return Number.isFinite(n) ? n : NaN
+				}
+
+				function computeBmi(heightCm, weightKg) {
+					const h = toNumber(heightCm)
+					const w = toNumber(weightKg)
+					if (!Number.isFinite(h) || !Number.isFinite(w) || h <= 0 || w <= 0) return NaN
+					const heightM = h / 100
+					return w / (heightM * heightM)
+				}
+
+				function formatBmi(bmi) {
+					if (!Number.isFinite(bmi)) return '—'
+					return bmi.toFixed(1)
+				}
+
+				function getBmiCategory(bmi) {
+					if (!Number.isFinite(bmi)) return { label: '', color: 'var(--blue)' }
+					if (bmi < 18.5) return { label: 'Недостаточная масса', color: 'var(--blue)' }
+					if (bmi < 25) return { label: 'Норма', color: 'var(--green)' }
+					if (bmi < 30) return { label: 'Избыточная масса', color: 'var(--orange)' }
+					return { label: 'Ожирение', color: 'var(--red)' }
+				}
+
+				function mapBmiToPercent(bmi) {
+					// Map BMI roughly 12..40 to 0..100% (clamped)
+					const min = 12
+					const max = 40 // covers most values
+					const b = Math.min(Math.max(bmi, min), max)
+					return ((b - min) / (max - min)) * 100
+				}
+
+				function validateField(inputEl, min, max, errEl) {
+					const value = toNumber(inputEl.value)
+					let message = ''
+					if (!inputEl.value || !Number.isFinite(value)) {
+						message = 'Введите число'
+					} else if (value < min || value > max) {
+						message = `Значение вне диапазона (${min}–${max})`
+					}
+					if (message) {
+						inputEl.setAttribute('aria-invalid', 'true')
+						errEl.textContent = message
+						return false
+					}
+					inputEl.removeAttribute('aria-invalid')
+					errEl.textContent = ''
+					return true
+				}
+
+				function updatePerson(personKey, heightEl, weightEl, bmiEl, categoryEl, needleEl) {
+					const okH = validateField(heightEl, 30, 300, errors[personKey + 'Height'])
+					const okW = validateField(weightEl, 2, 500, errors[personKey + 'Weight'])
+					if (!okH || !okW) {
+						bmiEl.textContent = '—'
+						categoryEl.textContent = ''
+						needleEl.style.left = '0%'
+						return { valid: false, bmi: NaN }
+					}
+					const bmi = computeBmi(heightEl.value, weightEl.value)
+					const cat = getBmiCategory(bmi)
+					bmiEl.textContent = formatBmi(bmi)
+					categoryEl.textContent = cat.label
+					categoryEl.style.background = cat.color
+					categoryEl.style.borderColor = 'transparent'
+					const pct = mapBmiToPercent(bmi)
+					needleEl.style.left = pct + '%'
+					return { valid: true, bmi }
+				}
+
+				function updateComparison(bmiA, bmiB) {
+					const validA = Number.isFinite(bmiA)
+					const validB = Number.isFinite(bmiB)
+					if (!validA && !validB) {
+						results.cmpSummary.textContent = 'Заполните данные и нажмите «Рассчитать и сравнить».'
+						results.cmpNeedleA.style.left = '0%'
+						results.cmpNeedleB.style.left = '0%'
+						return
+					}
+					if (validA) results.cmpNeedleA.style.left = mapBmiToPercent(bmiA) + '%'
+					if (validB) results.cmpNeedleB.style.left = mapBmiToPercent(bmiB) + '%'
+
+					if (validA && validB) {
+						const diff = Math.abs(bmiA - bmiB)
+						let who = 'Одинаковый ИМТ'
+						if (diff < 0.1) {
+							who = 'ИМТ практически одинаковый'
+						} else if (bmiA > bmiB) {
+							who = 'У Человека A ИМТ выше'
+						} else if (bmiB > bmiA) {
+							who = 'У Человека B ИМТ выше'
+						}
+						results.cmpSummary.textContent = `${who}. Разница: ${diff.toFixed(1)}`
+						// Move focus for SR users to hear update
+						results.cmpSummary.focus({ preventScroll: true })
+						return
+					}
+
+					results.cmpSummary.textContent = validA
+						? 'Есть результат для Человека A. Заполните данные Человека B.'
+						: 'Есть результат для Человека B. Заполните данные Человека A.'
+				}
+
+				function handleSubmit(ev) {
+					ev.preventDefault()
+					const a = updatePerson(
+						'p1',
+						inputs.p1Height,
+						inputs.p1Weight,
+						results.p1Bmi,
+						results.p1Category,
+						results.p1Needle,
+					)
+					const b = updatePerson(
+						'p2',
+						inputs.p2Height,
+						inputs.p2Weight,
+						results.p2Bmi,
+						results.p2Category,
+						results.p2Needle,
+					)
+					updateComparison(a.bmi, b.bmi)
+				}
+
+				function clearAll() {
+					for (const key of Object.keys(inputs)) inputs[key].value = ''
+					for (const k of Object.keys(errors)) errors[k].textContent = ''
+					inputs.p1Height.focus()
+					// Reset UI
+					results.p1Bmi.textContent = '—'
+					results.p1Category.textContent = ''
+					results.p1Needle.style.left = '0%'
+					results.p2Bmi.textContent = '—'
+					results.p2Category.textContent = ''
+					results.p2Needle.style.left = '0%'
+					results.cmpSummary.textContent = 'Заполните данные и нажмите «Рассчитать и сравнить».'
+					results.cmpNeedleA.style.left = '0%'
+					results.cmpNeedleB.style.left = '0%'
+				}
+
+				function handleInput(event) {
+					const target = event.target
+					if (!(target instanceof HTMLInputElement)) return
+					// Remove invalid state while typing
+					if (target.hasAttribute('aria-invalid')) {
+						target.removeAttribute('aria-invalid')
+					}
+					const errId = target
+						.getAttribute('aria-describedby')
+						?.split(' ')
+						.find((id) => id.endsWith('-err'))
+					if (errId) {
+						const errEl = document.getElementById(errId)
+						if (errEl) errEl.textContent = ''
+					}
+				}
+
+				form.addEventListener('submit', handleSubmit)
+				form.addEventListener('input', handleInput)
+				clearBtn.addEventListener('click', clearAll)
+			})()
+		</script>
+	</body>
+</html>
